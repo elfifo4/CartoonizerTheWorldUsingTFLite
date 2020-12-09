@@ -11,13 +11,8 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
-import com.example.cartooo.ImageUtils
-import com.example.cartooo.MainActivity
-import com.example.cartooo.R
-import com.example.cartooo.ml.Hayao
-import com.example.cartooo.ml.WhiteboxCartoonGanDr
-import com.example.cartooo.ml.WhiteboxCartoonGanFp16
-import com.example.cartooo.ml.WhiteboxCartoonGanInt8
+import com.example.cartooo.*
+import com.example.cartooo.ml.*
 import kotlinx.android.synthetic.main.fragment_selfie2cartoon.*
 import kotlinx.coroutines.*
 import org.tensorflow.lite.DataType
@@ -57,31 +52,53 @@ class CartoonFragment : Fragment() {
             val sourceImage = TensorImage.fromBitmap(bitmap)
 
 //        输出
-            val cartoonizedImage: TensorImage
+            var cartoonizedImage: TensorImage? = null
+            var res: Bitmap? = null
+
             val startTime = SystemClock.uptimeMillis()
-            cartoonizedImage = when (modelType) {
-                0 -> inferenceWithDrModel(sourceImage)       //DR
-                1 -> inferenceWithFp16Model(sourceImage)     //Fp16
-                2 -> inferenceWithInt8Model(sourceImage, option) //Int8
-                3 -> inferenceWithDrVedantaModel(sourceImage) // DR Vedanta
-                4 -> inferenceWithHayaoModel(sourceImage) //Hayao
-                else -> inferenceWithDrModel(sourceImage)
+            when (modelType) {
+                0 -> cartoonizedImage = inferenceWithDrModel(sourceImage)       //DR
+                1 -> cartoonizedImage = inferenceWithFp16Model(sourceImage)     //Fp16
+                2 -> cartoonizedImage = inferenceWithInt8Model(sourceImage, option) //Int8
+                3 -> res = inferenceWithDrVedantaModel(bitmap) // DR Vedanta
+                4 -> res = inferenceWithHayaoModel(bitmap) //Hayao
+                else -> cartoonizedImage = inferenceWithDrModel(sourceImage)
                 //        此推断时间包括预处理和后处理
 
             }
             val inferenceTime = SystemClock.uptimeMillis() - startTime
-            val cartoonizedImageBitmap = cartoonizedImage.bitmap
 
-            return@async Pair(cartoonizedImageBitmap, inferenceTime)
+            if (cartoonizedImage != null) {
+                val cartoonizedImageBitmap = cartoonizedImage.bitmap
+                return@async Pair(cartoonizedImageBitmap, inferenceTime)
+            } else {
+                return@async Pair(res!!, inferenceTime)
+            }
+
+
         }
 
-    private fun inferenceWithDrVedantaModel(sourceImage: TensorImage): TensorImage {
+    private fun inferenceWithDrVedantaModel(bitmap: Bitmap): Bitmap {
         Log.d(TAG, "inferenceWithDrVedantaModel")
 
-        return sourceImage
+        val model = WhiteboxCartoonGanDrVedanta.newInstance(requireContext())
+
+        // Creates inputs for reference.
+        val inputFeature0 =
+            TensorBuffer.createFixedSize(intArrayOf(1, 720, 720, 3), DataType.FLOAT32)
+        inputFeature0.loadBuffer(bitmap.toByteBuffer())
+
+        // Runs model inference and gets result.
+        val outputs = model.process(inputFeature0)
+        val outputFeature0 = outputs.outputFeature0AsTensorBuffer
+
+        // Releases model resources if no longer used.
+        model.close()
+
+        return outputFeature0.buffer.toBitmap()
     }
 
-    private fun inferenceWithHayaoModel(sourceImage: TensorImage): TensorImage {
+    private fun inferenceWithHayaoModel(bitmap: Bitmap): Bitmap {
         Log.d(TAG, "inferenceWithHayaoModel")
 
         val model = Hayao.newInstance(requireContext())
@@ -89,19 +106,16 @@ class CartoonFragment : Fragment() {
         // Creates inputs for reference.
         val inputFeature0 =
             TensorBuffer.createFixedSize(intArrayOf(1, 720, 720, 3), DataType.FLOAT32)
-
-        val byteBuffer = sourceImage.buffer
-        inputFeature0.loadBuffer(byteBuffer)
+        inputFeature0.loadBuffer(bitmap.toByteBuffer())
 
         // Runs model inference and gets result.
         val outputs = model.process(inputFeature0)
-
         val outputFeature0 = outputs.outputFeature0AsTensorBuffer
 
-// Releases model resources if no longer used.
+        // Releases model resources if no longer used.
         model.close()
 
-        return sourceImage
+        return outputFeature0.buffer.toBitmap()
     }
 
     //使用动态范围tflite模型进行推断
