@@ -19,10 +19,12 @@ fun Bitmap.toByteBuffer(): ByteBuffer {
     //or we can calculate bytes this way. Use a different value than 4 if you don't use 32bit images.
     //int bytes = b.getWidth()*b.getHeight()*4;
 
-    return ByteBuffer.allocate(bytes) //Create a new buffer
+    val buffer = ByteBuffer.allocate(bytes) //Create a new buffer
 
-//    this.copyPixelsToBuffer(buffer) //Move the byte data to the buffer
-//
+    this.copyPixelsToBuffer(buffer) //Move the byte data to the buffer
+
+    return buffer
+
 //    //Get the underlying array containing the data.
 //    return buffer.array()
 }
