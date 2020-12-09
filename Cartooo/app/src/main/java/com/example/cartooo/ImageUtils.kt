@@ -16,6 +16,16 @@ class ImageUtils {
                 //OutputStream stream 写入压缩数据的输出流；
                 //返回值
                 //如果成功地把压缩数据写入输出流，则返回true。
+
+
+                /*
+                // Bitmap.CompressFormat format image compression format;
+                 //int quality image compression rate, 0-100. 0 compresses 100%, 100 means no compression;
+                 //OutputStream stream to write the output stream of compressed data;
+                 //return value
+                 //Return true if the compressed data is successfully written to the output stream.
+
+                 */
                 bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, stream)
                 stream.flush()
                 stream.close()

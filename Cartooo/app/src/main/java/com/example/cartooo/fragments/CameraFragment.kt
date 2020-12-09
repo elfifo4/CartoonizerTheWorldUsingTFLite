@@ -124,6 +124,7 @@ class CameraFragment :Fragment(){
         model_spinner.adapter = modelAdapter
 
 ////设置项目选择的侦听器
+        ////Set the listener for project selection
         model_spinner.onItemSelectedListener = object :AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>?,
@@ -167,7 +168,7 @@ class CameraFragment :Fragment(){
         Log.d(TAG, "Preview aspect ratio: $screenAspectRatio")
 
 
-        cameraProviderFuture.addListener(Runnable {
+        cameraProviderFuture.addListener({
 //            用于将摄像机的生命周期绑定到生命周期所有者
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 //设置预览
@@ -181,11 +182,14 @@ class CameraFragment :Fragment(){
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 .setTargetRotation(Surface.ROTATION_270)
                 .setTargetRotation(viewFinder.display.rotation)
-                .setTargetResolution(Size(512, 512)) //将目标分辨率设置为512x512
+                    //Set the target resolution to
+//                .setTargetResolution(Size(512, 512)) //将目标分辨率设置为512x512
+                .setTargetResolution(Size(720, 720)) //将目标分辨率设置为512x512
                 .build()
 //            选择前置摄像头作为默认自拍照
             val cameraSelector =
 //                CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                //Change the camera to the front
                 CameraSelector.Builder().requireLensFacing(lensFacing)
                     .build()        //将相机更换为正面
 

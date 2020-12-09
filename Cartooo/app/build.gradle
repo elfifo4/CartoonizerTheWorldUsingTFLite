@@ -11,7 +11,7 @@ android {
     defaultConfig {
         applicationId "com.example.cartooo"
         minSdkVersion 21
-        targetSdkVersion 30
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
         android.defaultConfig.vectorDrawables.useSupportLibrary = true
@@ -56,6 +56,7 @@ dependencies {
 
 //    implementation 'org.tensorflow:tensorflow-lite:2.2.0'
     implementation 'org.tensorflow:tensorflow-lite-support:0.0.0-nightly'
+//    implementation 'org.tensorflow:tensorflow-lite-support:0.1.0-rc1'
 
     implementation 'com.google.android.material:material:1.1.0'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.2.2'

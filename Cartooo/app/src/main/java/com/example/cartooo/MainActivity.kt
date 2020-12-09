@@ -26,7 +26,8 @@ class MainActivity : AppCompatActivity() {
 
 
     companion object {
-        /** 使用外部媒体（如果可用），否则使用我们应用程序的文件目录 */
+//        /** 使用外部媒体（如果可用），否则使用我们应用程序的文件目录 */
+        /** Use external media (if available), otherwise use the file directory of our application */
         fun  getOutputDirectory(context: Context):File {
             val appContext = context.applicationContext
             val mediaDir =
