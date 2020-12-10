@@ -106,7 +106,9 @@ class CartoonFragment : Fragment() {
         // Releases model resources if no longer used.
         model.close()
 
-        return outputFeature0.buffer.toBitmap()
+
+        convertOutputBufferToBitmap(outputFeature0.buffer, scaled)
+        return scaled
     }
 
     private fun inferenceWithHayaoModel(bitmap: Bitmap): Bitmap {
@@ -135,7 +137,8 @@ class CartoonFragment : Fragment() {
         // Releases model resources if no longer used.
         model.close()
 
-        return outputFeature0.buffer.toBitmap()
+        convertOutputBufferToBitmap(outputFeature0.buffer, scaled)
+        return scaled
     }
 
     //使用动态范围tflite模型进行推断
