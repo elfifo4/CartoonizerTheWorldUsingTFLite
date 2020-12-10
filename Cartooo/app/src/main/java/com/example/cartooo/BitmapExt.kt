@@ -12,7 +12,7 @@ import java.nio.ByteBuffer
 fun Bitmap.toByteBuffer(): ByteBuffer {
 
     //calculate how many bytes our image consists of.
-    val bytes: Int = this.byteCount
+    val bytes = this.byteCount
     //or we can calculate bytes this way. Use a different value than 4 if you don't use 32bit images.
     //int bytes = b.getWidth()*b.getHeight()*4;
 
@@ -28,3 +28,23 @@ fun Bitmap.toByteBuffer(): ByteBuffer {
 //    //Get the underlying array containing the data.
 //    return buffer.array()
 }
+
+
+// For input image where information is only stored in alpha channel over black RGB.
+// Make all pixels with transparency black, and remove alpha channel.
+fun Bitmap.alphaToBlack(): Bitmap {
+    val rgbImage = this.copy(Bitmap.Config.ARGB_8888, true)
+    for (y in 0 until rgbImage.height) {
+        for (x in 0 until rgbImage.width) {
+//            val aPixel = rgbImage.getPixel(x, y)
+            if (rgbImage.getPixel(x, y) < -0x1000000) rgbImage.setPixel(x, y, -0x1000000)
+        }
+    }
+    return rgbImage
+}
+
+fun Bitmap.onlyRGB(): Bitmap {
+    return this.copy(Bitmap.Config.ALPHA_8, true)
+}
+
+

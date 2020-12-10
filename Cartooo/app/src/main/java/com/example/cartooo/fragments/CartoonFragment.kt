@@ -20,6 +20,8 @@ import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.model.Model
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -86,7 +88,16 @@ class CartoonFragment : Fragment() {
         // Creates inputs for reference.
         val inputFeature0 =
             TensorBuffer.createFixedSize(intArrayOf(1, 720, 720, 3), DataType.FLOAT32)
-        inputFeature0.loadBuffer(bitmap.toByteBuffer())
+
+        inImgData.clear()
+        outImgData.clear()
+
+        val scaled = Bitmap.createScaledBitmap(bitmap, DESIRED_SIZE, DESIRED_SIZE, true)
+        convertBitmapToByteBuffer(scaled)
+
+        Log.d(TAG, "inImgData___ $inImgData")
+
+        inputFeature0.loadBuffer(inImgData)
 
         // Runs model inference and gets result.
         val outputs = model.process(inputFeature0)
@@ -106,7 +117,16 @@ class CartoonFragment : Fragment() {
         // Creates inputs for reference.
         val inputFeature0 =
             TensorBuffer.createFixedSize(intArrayOf(1, 720, 720, 3), DataType.FLOAT32)
-        inputFeature0.loadBuffer(bitmap.toByteBuffer())
+
+        inImgData.clear()
+        outImgData.clear()
+
+        val scaled = Bitmap.createScaledBitmap(bitmap, DESIRED_SIZE, DESIRED_SIZE, true)
+        convertBitmapToByteBuffer(scaled)
+
+        Log.d(TAG, "inImgData___ $inImgData")
+
+        inputFeature0.loadBuffer(inImgData)
 
         // Runs model inference and gets result.
         val outputs = model.process(inputFeature0)
@@ -246,7 +266,52 @@ class CartoonFragment : Fragment() {
     companion object {
         private const val TAG = "CartoonFragment"
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
+
+        private const val DESIRED_SIZE = 720
+
     }
 
+
+    private val mapSize by lazy(LazyThreadSafetyMode.NONE) { DESIRED_SIZE * DESIRED_SIZE }
+    private val pixelsBuffer = IntArray(mapSize)
+    private val inImgData: ByteBuffer =
+        ByteBuffer.allocateDirect(mapSize * 3 * java.lang.Float.SIZE / java.lang.Byte.SIZE)
+            .apply { order(ByteOrder.nativeOrder()) }
+    private val outImgData: ByteBuffer =
+        ByteBuffer.allocateDirect(mapSize * java.lang.Float.SIZE / java.lang.Byte.SIZE)
+            .apply { order(ByteOrder.nativeOrder()) }
+
+    private fun convertBitmapToByteBuffer(bitmap: Bitmap) {
+        bitmap.getPixels(pixelsBuffer, 0, DESIRED_SIZE, 0, 0, DESIRED_SIZE, DESIRED_SIZE)
+        inImgData.rewind()
+        // Convert the image to floating point.
+        var pixel = 0
+        for (i in 0 until DESIRED_SIZE) {
+            for (j in 0 until DESIRED_SIZE) {
+                val pixelValue = pixelsBuffer[pixel++]
+                val v1 = (pixelValue shr 16 and 0xFF) / 255f
+                val v2 = (pixelValue shr 8 and 0xFF) / 255f
+                val v3 = (pixelValue and 0xFF) / 255f
+                inImgData.putFloat(v1)
+                inImgData.putFloat(v2)
+                inImgData.putFloat(v3)
+            }
+        }
+    }
+
+    private fun convertOutputBufferToBitmap(outImgData: ByteBuffer, outBitmap: Bitmap) {
+        outImgData.rewind()
+
+        for (i in 0 until mapSize) {
+            val value = outImgData.float
+            if (value > 0.2) {
+                pixelsBuffer[i] = -0x1
+            } else {
+                pixelsBuffer[i] = -0x1000000
+            }
+        }
+
+        outBitmap.setPixels(pixelsBuffer, 0, DESIRED_SIZE, 0, 0, DESIRED_SIZE, DESIRED_SIZE)
+    }
 
 }
