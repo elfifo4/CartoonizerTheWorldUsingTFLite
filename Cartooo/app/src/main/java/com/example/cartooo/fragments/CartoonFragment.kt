@@ -107,7 +107,9 @@ class CartoonFragment : Fragment() {
         model.close()
 
 
-        convertOutputBufferToBitmap(outputFeature0.buffer, scaled)
+        val output = scaled.copy(Bitmap.Config.ARGB_8888, true)
+
+        convertOutputBufferToBitmap(outputFeature0.buffer, output)
         return scaled
     }
 
@@ -137,7 +139,9 @@ class CartoonFragment : Fragment() {
         // Releases model resources if no longer used.
         model.close()
 
-        convertOutputBufferToBitmap(outputFeature0.buffer, scaled)
+        val output = scaled.copy(Bitmap.Config.ARGB_8888, true)
+
+        convertOutputBufferToBitmap(outputFeature0.buffer, output)
         return scaled
     }
 
