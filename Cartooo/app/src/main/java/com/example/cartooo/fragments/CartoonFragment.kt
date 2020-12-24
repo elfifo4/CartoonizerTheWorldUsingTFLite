@@ -59,10 +59,10 @@ class CartoonFragment : Fragment() {
 
             val startTime = SystemClock.uptimeMillis()
             when (modelType) {
-                0 -> cartoonizedImage = inferenceWithDrModel(sourceImage)       //DR
-                1 -> cartoonizedImage = inferenceWithFp16Model(sourceImage)     //Fp16
-                2 -> cartoonizedImage = inferenceWithInt8Model(sourceImage, option) //Int8
-                3 -> res = inferenceWithDrVedantaModel(bitmap) // DR Vedanta
+                0 -> res = inferenceWithVedantaNewModel32(bitmap) // DR Vedanta
+                1 -> cartoonizedImage = inferenceWithDrModel(sourceImage)       //DR
+                2 -> cartoonizedImage = inferenceWithFp16Model(sourceImage)     //Fp16
+                3 -> cartoonizedImage = inferenceWithInt8Model(sourceImage, option) //Int8
                 4 -> res = inferenceWithHayaoModel(bitmap) //Hayao
                 else -> cartoonizedImage = inferenceWithDrModel(sourceImage)
                 //        此推断时间包括预处理和后处理
@@ -80,14 +80,107 @@ class CartoonFragment : Fragment() {
 
         }
 
-    private fun inferenceWithDrVedantaModel(bitmap: Bitmap): Bitmap {
-        Log.d(TAG, "inferenceWithDrVedantaModel")
+    private fun inferenceWithVedantaNewModel32(bitmap: Bitmap): Bitmap {
 
-        val model = WhiteboxCartoonGanDrVedanta.newInstance(requireContext())
+        val model = WhiteboxCartoon32.newInstance(requireContext())
 
-        // Creates inputs for reference.
+        val scaledImage = Bitmap.createScaledBitmap(bitmap, DESIRED_SIZE, DESIRED_SIZE, true)
+
         val inputFeature0 =
             TensorBuffer.createFixedSize(intArrayOf(1, 720, 720, 3), DataType.FLOAT32)
+
+
+        val inputImageBuffer = TensorImage(DataType.FLOAT32)
+        inputImageBuffer.load(scaledImage)
+        inputFeature0.loadBuffer(inputImageBuffer.buffer)
+
+
+        // Runs model inference and gets result.
+        val outputs = model.process(inputFeature0)
+        val outputFeature0 = outputs.outputFeature0AsTensorBuffer
+
+        val result: FloatArray = outputFeature0.floatArray
+        Log.d(TAG, "FloatArray__1 floatArray" + result.contentToString())
+        Log.d(TAG, "FloatArray__1 intArray" + outputFeature0.intArray.contentToString())
+
+        val outputBitmap: Bitmap = postProcess(result)
+
+        model.close()
+
+//        return outputFeature0.buffer.toBitmap()
+        return outputBitmap
+    }
+
+
+    private fun inferenceWithVedantaNewModel2(bitmap: Bitmap): Bitmap {
+
+        val model = WhiteboxCartoonUint8.newInstance(requireContext())
+
+        val scaledImage = Bitmap.createScaledBitmap(bitmap, DESIRED_SIZE, DESIRED_SIZE, true)
+
+        val inputFeature0 =
+            TensorBuffer.createFixedSize(intArrayOf(1, 720, 720, 3), DataType.UINT8)
+
+
+        val inputImageBuffer = TensorImage(DataType.UINT8)
+        inputImageBuffer.load(scaledImage)
+        inputFeature0.loadBuffer(inputImageBuffer.buffer)
+
+
+        // Runs model inference and gets result.
+        val outputs = model.process(inputFeature0)
+        val outputFeature0 = outputs.outputFeature0AsTensorBuffer
+
+//        TFImageUtils.convertBitmapToTensorBuffer(
+//            scaled,
+//            tensorBuffer
+//        )
+
+
+        val result: FloatArray = outputFeature0.floatArray
+        Log.d(TAG, "FloatArray__2 " + result.contentToString())
+
+        val outputBitmap: Bitmap = postProcess(result)
+
+
+//        val outputBitmap = TFImageUtils.convertTensorBufferToBitmap(outputFeature0)
+
+        model.close()
+
+        return outputBitmap
+    }
+
+    private fun postProcess(data: FloatArray): Bitmap {
+        val width = DESIRED_SIZE
+        val height = DESIRED_SIZE
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        for (y in 0 until width) {
+            for (x in 0 until height) {
+                val pos = y * width * 3 + x * 3
+                val color = rgb(
+                    data[pos],
+                    data[pos + 1],
+                    data[pos + 2]
+                )
+                result.setPixel(x, y, color)
+            }
+        }
+        return result
+    }
+
+    private fun conv(value: Float): Int {
+        return (255.0 * (value + 1f) / 2f).toInt()
+    }
+
+    private fun rgb(red: Float, green: Float, blue: Float): Int {
+        return -0x1000000 or (conv(red) shl 16) or (conv(green) shl 8) or conv(blue)
+    }
+
+    private fun inferenceWithVedantaNewModel(bitmap: Bitmap): Bitmap {
+        Log.d(TAG, "inferenceWithDrVedantaModel")
+
+        val model = WhiteboxCartoonUint8.newInstance(requireContext())
+
 
         inImgData.clear()
         outImgData.clear()
@@ -97,6 +190,9 @@ class CartoonFragment : Fragment() {
 
         Log.d(TAG, "inImgData___ $inImgData")
 
+        // Creates inputs for reference.
+        val inputFeature0 =
+            TensorBuffer.createFixedSize(intArrayOf(1, 720, 720, 3), DataType.UINT8)
         inputFeature0.loadBuffer(inImgData)
 
         // Runs model inference and gets result.
@@ -113,6 +209,45 @@ class CartoonFragment : Fragment() {
         return scaled
     }
 
+
+    private fun inferenceWithDrVedantaModel(bitmap: Bitmap): Bitmap {
+        Log.d(TAG, "inferenceWithDrVedantaModel")
+
+        val model: WhiteboxCartoonUint8 = WhiteboxCartoonUint8.newInstance(requireContext())
+
+        // Creates inputs for reference.
+        val inputFeature0 =
+            TensorBuffer.createFixedSize(intArrayOf(1, 720, 720, 3), DataType.UINT8)
+
+        inImgData.clear()
+        outImgData.clear()
+
+        val scaled = Bitmap.createScaledBitmap(bitmap, DESIRED_SIZE, DESIRED_SIZE, true)
+        convertBitmapToByteBuffer(scaled)
+
+//        Log.d(TAG, "inImgData___ $inImgData")
+//        Log.d(TAG, "byteBuffer___ $byteBuffer")
+
+        inputFeature0.loadBuffer(inImgData)
+
+        // Runs model inference and gets result.
+        val outputs = model.process(inputFeature0)
+        val outputFeature0: TensorBuffer = outputs.outputFeature0AsTensorBuffer
+
+        // Releases model resources if no longer used.
+        model.close()
+
+
+        val output = scaled.copy(Bitmap.Config.ARGB_8888, true)
+
+        convertOutputBufferToBitmap(outputFeature0.buffer, output)
+
+
+//        ByteBuffer
+//        ImageUtilsNew.convertArrayToBitmap()
+        return output
+    }
+
     private fun inferenceWithHayaoModel(bitmap: Bitmap): Bitmap {
         Log.d(TAG, "inferenceWithHayaoModel")
 
@@ -120,7 +255,10 @@ class CartoonFragment : Fragment() {
 
         // Creates inputs for reference.
         val inputFeature0 =
-            TensorBuffer.createFixedSize(intArrayOf(1, 720, 720, 3), DataType.FLOAT32)
+            TensorBuffer.createFixedSize(
+                intArrayOf(1, 720, 720, 3),
+                DataType.FLOAT32
+            ) //DataType.UINT8
 
         inImgData.clear()
         outImgData.clear()
@@ -142,7 +280,7 @@ class CartoonFragment : Fragment() {
         val output = scaled.copy(Bitmap.Config.ARGB_8888, true)
 
         convertOutputBufferToBitmap(outputFeature0.buffer, output)
-        return scaled
+        return output
     }
 
     //使用动态范围tflite模型进行推断
@@ -282,7 +420,7 @@ class CartoonFragment : Fragment() {
     private val mapSize by lazy(LazyThreadSafetyMode.NONE) { DESIRED_SIZE * DESIRED_SIZE }
     private val pixelsBuffer = IntArray(mapSize)
     private val inImgData: ByteBuffer =
-        ByteBuffer.allocateDirect(mapSize * 3 * java.lang.Float.SIZE / java.lang.Byte.SIZE)
+        ByteBuffer.allocateDirect(mapSize * 3 * 8 / java.lang.Byte.SIZE)
             .apply { order(ByteOrder.nativeOrder()) }
     private val outImgData: ByteBuffer =
         ByteBuffer.allocateDirect(mapSize * java.lang.Float.SIZE / java.lang.Byte.SIZE)

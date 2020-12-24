@@ -7,10 +7,10 @@
     <string name="share_button_alt">Share</string>
     <string name="save_button_alt">Save</string>
     <string-array name="tflite_models" translatable="false">
+        <item>Model: White-box CartoonGan DR Vedanta</item>
         <item>Model: White-box CartoonGan Dynamic Range</item>
         <item>Model: White-box CartoonGan Dynamic Fp16</item>
         <item>Model: White-box CartoonGan Int8</item>
-        <item>Model: White-box CartoonGan DR Vedanta</item>
         <item>Model: Hayao</item>
     </string-array>
     <!-- TODO: Remove or change this placeholder text -->
